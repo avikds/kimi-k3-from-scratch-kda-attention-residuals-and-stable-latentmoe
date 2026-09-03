@@ -39,6 +39,18 @@ python scaffold.py
 - [x] **27.** per_head_muon
 - [x] **28.** mini_k3_forward
 
----
+## Results
 
-Built on Deep-ML.
+```
+chunkwise == recurrence: True
+alpha bounds ok: True
+attnres full shape: (5, 8) block shape: (5, 8)
+SiTU-GLU max |out| (bound 100): 100.0
+QB loads before: [2, 5, 5, 4] after: [4, 4, 4, 4]
+histogram quantile err <= binwidth: True
+per-head norm ratio: 0.998 | full-matrix: 0.186
+schedule: ['KDA', 'KDA', 'KDA', 'MLA', 'MLA']
+logits shape: (6, 17) finite: True
+causal end-to-end: True
+next-token argmax per position: [7, 3, 14, 6, 14, 13]
+```
