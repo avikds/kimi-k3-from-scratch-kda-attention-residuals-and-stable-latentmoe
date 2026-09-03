@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kimi K3 from Scratch: KDA, Attention Residuals, and Stable LatentMoE — Built on Deep-ML</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #09090b;
+      --surface: #18181b;
+      --surface-alt: #27272a;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1a6;
+      --accent: #fafafa;
+    }
+  }
+  :root {
+    --bg: #ffffff;
+    --surface: #fafafa;
+    --surface-alt: #f4f4f5;
+    --border: #e4e4e7;
+    --text: #18181b;
+    --text-muted: #71717a;
+    --accent: #18181b;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+  }
+
+  .theme-toggle {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 100;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  .theme-toggle:hover {
+    border-color: var(--text);
+  }
+  .theme-toggle svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--text);
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .hero {
+    position: relative;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" /></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.05"/></svg>');
+    opacity: 0.3;
+    animation: drift 20s ease-in-out infinite;
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(10px, -10px); }
+  }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    animation: fadeInUp 0.8s ease-out;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero h1 {
+    font-family: var(--mono);
+    font-size: 48px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 96px 24px; }
+
+  .section {
+    scroll-margin-top: 100px;
+    animation: fadeIn 0.6s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 32px;
+    font-weight: 600;
+  }
+  .input-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 64px;
+  }
+  .output-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 96px;
+    min-height: 100px;
+  }
+
+  .how-section { margin-bottom: 96px; }
+  .part-reveal {
+    margin-bottom: 48px;
+    animation: slideInLeft 0.6s ease-out;
+  }
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .part-title {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: var(--text);
+  }
+  .part-description {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+  }
+  .diagram-container svg {
+    max-width: 100%;
+    height: auto;
+    color: var(--text);
+  }
+
+  .footer {
+    text-align: center;
+    padding-top: 48px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .footer a {
+    color: var(--text);
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+    <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <h1>Kimi K3 from Scratch: KDA, Attention Residuals, and Stable LatentMoE</h1>
+    </div>
+  </section>
+
+  <div class="wrap">
+    
+
+    <section class="section how-section" id="how-section">
+      <h2 class="section-title">How it was built</h2>
+      
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 1: KDA Projections and Decay</h3>
+              <p class="part-description">Build KDA&#39;s input pathway: the short causal conv, Swish/L2Norm q-k-v projections, the write-strength and decay-logit gates, and Kimi K3&#39;s lower-bounded scaled-sigmoid decay.</p>
+              
+            </div>
+          
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 2: KDA Recurrence and Chunkwise Form</h3>
+              <p class="part-description">Implement the delta-rule state recurrence, then reproduce it exactly with the chunkwise-parallel form (cumulative decay, triangular-solve pseudo-values, inter/intra-chunk outputs) and the full-rank output gate.</p>
+              
+            </div>
+          
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 3: Gated MLA with NoPE</h3>
+              <p class="part-description">Compress KV into a latent, reconstruct per-head keys and values, run causal attention with no positional encoding, gate the output, and lay out the 3:1 hybrid KDA/MLA layer schedule.</p>
+              
+            </div>
+          
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 4: Attention Residuals</h3>
+              <p class="part-description">Replace the residual stream with attention over depth: pseudo-query weighting over RMS-normalized layer outputs, the full form, and the O(N)-memory block form with running partial sums.</p>
+              
+            </div>
+          
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 5: Stable LatentMoE</h3>
+              <p class="part-description">Build SiTU-GLU&#39;s softly capped experts, the aux-loss-free sigmoid router, sparse latent dispatch, and the full layer with RMSNorm before the up-projection.</p>
+              
+            </div>
+          
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 6: Quantile Balancing</h3>
+              <p class="part-description">Balance expert load without auxiliary losses: Top-(k+1) cutoffs, the order-statistic bias update that hits exact target loads, and the histogram estimator that makes it distributed-friendly.</p>
+              
+            </div>
+          
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 7: Per-Head Muon</h3>
+              <p class="part-description">Implement Newton-Schulz orthogonalization and Kimi K3&#39;s per-head variant, showing how full-matrix orthogonalization starves small-scale heads.</p>
+              
+            </div>
+          
+            <div class="part-reveal" style="opacity: 1">
+              <h3 class="part-title">Part 8: Mini K3 Assembly</h3>
+              <p class="part-description">Assemble the hybrid stack, Attention Residuals, and Stable LatentMoE into a miniature Kimi K3 and verify causality end to end.</p>
+              
+            </div>
+          
+    </section>
+
+    <footer class="footer">
+      <p>Built by <strong>@avikds</strong> on <a href="https://deep-ml.com" target="_blank">Deep-ML</a></p>
+    </footer>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.style.colorScheme === 'dark';
+      html.style.colorScheme = isDark ? 'light' : 'dark';
+      localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    }
+    function initTheme() {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = saved === 'dark' || (saved === null && prefersDark);
+      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    }
+    initTheme();
+    window.scrollToOutput = function() {
+      const output = document.getElementById('output-section');
+      output?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  </script>
+</body>
+</html>
